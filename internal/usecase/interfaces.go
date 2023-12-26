@@ -3,11 +3,12 @@ package usecase
 import (
 	"context"
 	"lemon_be/internal/entity"
+	"net/http"
 )
 
 type (
 	Caregiver interface {
-		getNearestCaregiver(context.Context)
+		NotifyNearestCaregiver(ctx context.Context, e entity.UserLocation)
 	}
 
 	UserRepo interface {
@@ -35,5 +36,10 @@ type (
 		Geohash(key string) (string, error)
 		GeoAddCaregiver(tokenFcm string, long float64, lat float64)
 		GetCaregiverTokens(areaGeohash []string) ([]string, error)
+	}
+
+	// Websocket usecase
+	Websocket interface {
+		WebsocketHandler(http.ResponseWriter, *http.Request, context.Context) error
 	}
 )

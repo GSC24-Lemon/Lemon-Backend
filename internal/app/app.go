@@ -4,7 +4,9 @@ package app
 import (
 	"fmt"
 	firestorerepo "lemon_be/internal/usecase/repo/firestoreRepo"
+	"lemon_be/internal/usecase/repo/redisrepo"
 	"lemon_be/internal/util/jwt"
+	"lemon_be/pkg/redispkg"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,22 +25,29 @@ import (
 func Run(cfg *config.Config) {
 	l := logger.New(cfg.Log.Level)
 
-	// repoo
+	// db
 	firestoreDb, err := firestore.NewFirestore(cfg.Firestore.ServiceAccLocation, cfg.Firestore.ServiceAccLocation)
 	if err != nil {
 		l.Fatal(fmt.Errorf("app - Run - firestoreDb - firestore.NewFirestore: %w", err))
 	}
+	redis, err := redispkg.NewRedis(":6379", "gakpakepassword")
+
+	//repo
 	userRepo := firestorerepo.NewUserRepo(firestoreDb)
 	sessionRepo := firestorerepo.NewSessionRepo(firestoreDb)
+	geoRedisRepo := redisrepo.NewUserRedisrepo(redis)
 	// jwt
 	jwtTokenMaker, err := jwt.NewJWTMaker("VBKNhRGFYZWGtbQ8hQ6ABQn1oNbYkHTu/fj/cUUO9p8=")
 
 	// usecase
 	authUseCase := usecase.NewAuthUseCase(userRepo, jwtTokenMaker, sessionRepo)
+	caregiverUseCase := usecase.NewCaregiverUseCase(geoRedisRepo)
+	hub := usecase.NewHub(redis, geoRedisRepo)
+	websocketUSecase := usecase.NewWebsocketUseCase(hub, userRepo, geoRedisRepo)
 
 	// HTTP Server
 	handler := gin.New()
-	v1.NewRouter(handler, l, authUseCase)
+	v1.NewRouter(handler, l, authUseCase, websocketUSecase, caregiverUseCase)
 	httpServer := httpserver.New(handler, httpserver.Port(cfg.HTTP.Port))
 
 	// Waiting signal

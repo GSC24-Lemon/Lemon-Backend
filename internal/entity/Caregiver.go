@@ -30,8 +30,9 @@ type Caregiver struct {
 	HashedPassword string `json:"password"`
 }
 
-type CaregiverLocation struct {
-	Latitude  string    `json:"latitude"`
-	Longitude string    `json:"longitude"`
-	Caregiver Caregiver `json:"caregiver"`
-}
+//
+//type CaregiverLocation struct {
+//	Latitude  string    `json:"latitude"`
+//	Longitude string    `json:"longitude"`
+//	Caregiver Caregiver `json:"caregiver"`
+//}

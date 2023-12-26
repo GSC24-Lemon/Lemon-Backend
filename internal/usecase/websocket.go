@@ -16,11 +16,12 @@ var (
 type WebsocketUseCase struct {
 	userPg       UserRepo
 	geoRedisRepo GeoRedisRepo
+	hub          *Hub
 }
 
 // NewWebsocket Create new websocketUseCase
-func NewWebsocket(hub *Hub, userPg UserRepo, geoRedisRepo GeoRedisRepo) *WebsocketUseCase {
-	return &WebsocketUseCase{userPg, geoRedisRepo}
+func NewWebsocketUseCase(hub *Hub, userPg UserRepo, geoRedisRepo GeoRedisRepo) *WebsocketUseCase {
+	return &WebsocketUseCase{userPg, geoRedisRepo, hub}
 }
 
 var upgrader = websocket.Upgrader{
@@ -30,10 +31,16 @@ var upgrader = websocket.Upgrader{
 
 func (uc *WebsocketUseCase) WebsocketHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) error {
 
+	deviceId := r.URL.Query().Get("deviceId")
+	if deviceId == "" {
+		// Tell the user its not authorized
+		return WebsocketUnauthorizedError
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return WebsocketConnectionError
 	}
 
-	_ = uc.
+	_ = uc.hub.Register(ctx, conn, deviceId)
+	return nil
 }

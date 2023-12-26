@@ -1,7 +1,10 @@
 package usecase
 
 import (
+	"context"
+	"encoding/json"
 	"github.com/gorilla/websocket"
+	"lemon_be/internal/entity"
 	"lemon_be/pkg/redispkg"
 	"log"
 	"sort"
@@ -13,9 +16,9 @@ type User struct {
 	io   sync.Mutex
 	Conn *websocket.Conn
 
-	Id   uint
-	Name string
-	Hub  *Hub
+	Id       uint
+	DeviceId string
+	Hub      *Hub
 }
 
 type Hub struct {
@@ -42,7 +45,7 @@ func (h *Hub) Run() {
 		select {
 		case user := <-h.register:
 			user.Id = h.seq
-			user.Name = user.Name
+			user.DeviceId = user.DeviceId
 
 			h.us = append(h.us, user)
 			h.seq++
@@ -93,14 +96,49 @@ func (u *User) Recieve() error {
 
 	for {
 		// ReadMessage dari client websocket
-		_, _, err := u.Conn.ReadMessage()
+		_, msg, err := u.Conn.ReadMessage()
 
 		if err != nil {
 			break
 		}
 
+		msgWs := &entity.MsgGeolocationWs{}
+		if err = json.Unmarshal(msg, msgWs); err != nil {
+			log.Println("json.Unmarshal: ", err)
+			break
+		}
+
+		switch msgWs.Type {
+		case entity.MessageTypeUserLocation:
+			clientMsg := msgWs.MsgGeolocationUser
+			u.Hub.geoRedis.GeoAddVisuallyImpair(
+				clientMsg.DeviceId,
+				clientMsg.Long,
+				clientMsg.Lat,
+			)
+		case entity.MessageTypeCaregiverLocation:
+			clientMsg := msgWs.MsgGeolocationCaregiver
+			u.Hub.geoRedis.GeoAddCaregiver(clientMsg.TokenFcm,
+				clientMsg.Long, clientMsg.Lat)
+		}
+
+	}
+	return nil
+}
+
+// Register registers new connection as a User.
+func (h *Hub) Register(ctx context.Context, conn *websocket.Conn, deviceId string) *User {
+	user := &User{
+		Hub:      h,
+		Conn:     conn,
+		DeviceId: deviceId,
 	}
 
+	user.Hub.register <- user
+
+	go user.Recieve()
+
+	return user
 }
 
 // pongHandler handle message pong yang dikirim oleh client
