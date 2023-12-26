@@ -1,7 +1,7 @@
 package entity
 
 type UserLocation struct {
-	DeviceId string
-	Long     float64
-	Lat      float64
+	DeviceId string  `json:"deviceId"`
+	Long     float64 `json:"longitude"`
+	Lat      float64 `json:"latitude"`
 }

@@ -35,7 +35,8 @@ func Run(cfg *config.Config) {
 	//repo
 	userRepo := firestorerepo.NewUserRepo(firestoreDb)
 	sessionRepo := firestorerepo.NewSessionRepo(firestoreDb)
-	geoRedisRepo := redisrepo.NewUserRedisrepo(redis)
+	geoRedisRepo := redisrepo.NewGeoRedisRepo(redis)
+	userRedisRepo := redisrepo.NewUserRedisRepo(redis)
 	// jwt
 	jwtTokenMaker, err := jwt.NewJWTMaker("VBKNhRGFYZWGtbQ8hQ6ABQn1oNbYkHTu/fj/cUUO9p8=")
 
@@ -44,10 +45,11 @@ func Run(cfg *config.Config) {
 	caregiverUseCase := usecase.NewCaregiverUseCase(geoRedisRepo)
 	hub := usecase.NewHub(redis, geoRedisRepo)
 	websocketUSecase := usecase.NewWebsocketUseCase(hub, userRepo, geoRedisRepo)
+	userUsecase := usecase.NewUserUseCase(userRedisRepo)
 
 	// HTTP Server
 	handler := gin.New()
-	v1.NewRouter(handler, l, authUseCase, websocketUSecase, caregiverUseCase)
+	v1.NewRouter(handler, l, authUseCase, websocketUSecase, caregiverUseCase, userUsecase)
 	httpServer := httpserver.New(handler, httpserver.Port(cfg.HTTP.Port))
 
 	// Waiting signal

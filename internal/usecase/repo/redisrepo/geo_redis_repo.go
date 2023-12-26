@@ -11,7 +11,7 @@ type GeoRedisRepo struct {
 	rds *redispkg.Redis
 }
 
-func NewUserRedisrepo(rds *redispkg.Redis) *GeoRedisRepo {
+func NewGeoRedisRepo(rds *redispkg.Redis) *GeoRedisRepo {
 	return &GeoRedisRepo{rds}
 }
 
