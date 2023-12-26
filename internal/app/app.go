@@ -42,7 +42,7 @@ func Run(cfg *config.Config) {
 
 	// usecase
 	authUseCase := usecase.NewAuthUseCase(userRepo, jwtTokenMaker, sessionRepo)
-	caregiverUseCase := usecase.NewCaregiverUseCase(geoRedisRepo)
+	caregiverUseCase := usecase.NewCaregiverUseCase(geoRedisRepo, userRedisRepo)
 	hub := usecase.NewHub(redis, geoRedisRepo)
 	websocketUSecase := usecase.NewWebsocketUseCase(hub, userRepo, geoRedisRepo)
 	userUsecase := usecase.NewUserUseCase(userRedisRepo)

@@ -13,12 +13,14 @@ import (
 )
 
 type CaregiverUseCase struct {
-	repo GeoRedisRepo
+	repo        GeoRedisRepo
+	userRdsRepo UserRedisRepo
 }
 
-func NewCaregiverUseCase(r GeoRedisRepo) *CaregiverUseCase {
+func NewCaregiverUseCase(r GeoRedisRepo, userRdsRepo UserRedisRepo) *CaregiverUseCase {
 	return &CaregiverUseCase{
-		repo: r,
+		repo:        r,
+		userRdsRepo: userRdsRepo,
 	}
 }
 
@@ -38,11 +40,11 @@ func (uc *CaregiverUseCase) NotifyNearestCaregiver(ctx context.Context, e entity
 		return
 	}
 
-	pushNotificationToCaregivers(caregiverTokenFcms, e.Long, e.Lat)
+	pushNotificationToCaregivers(caregiverTokenFcms, e.Long, e.Lat, uc.userRdsRepo.GetUsernameFromDeviceId(e.DeviceId))
 
 }
 
-func pushNotificationToCaregivers(tokenFcms []string, longitude float64, latitude float64) {
+func pushNotificationToCaregivers(tokenFcms []string, longitude float64, latitude float64, username string) {
 	url := fmt.Sprintf("https://maps.googleapis.com/maps/api/geocode/json?latlng=%f,%f&key=%s", latitude, longitude, os.Getenv("GEOCODING_API_KEY"))
 	client, err := http.DefaultClient.Get(url)
 	if err != nil {
@@ -59,7 +61,7 @@ func pushNotificationToCaregivers(tokenFcms []string, longitude float64, latitud
 
 	address := jsonData["results"][2]["formatted_address"]
 
-	postUrl := "https://fcm.googleapis.com/v1/projects/myproject-b5ae1/messages:send"
+	postUrl := "https://fcm.googleapis.com/v1/projects/lemon-df113/messages:send"
 
 	for token := range tokenFcms {
 		notifBody := []byte(fmt.Sprintf(`
@@ -67,12 +69,17 @@ func pushNotificationToCaregivers(tokenFcms []string, longitude float64, latitud
 				"message": {
 					"token": %s,
 					"notification": {
-						"body": "There are visually impaired people who need help right now. are you willing to help him? there are blind people who need help right now. are you willing to help him? His location is on %s",
-						"title": "A visually impaired needs your help"
+						"body": "%s needs your help right now. are you willing to help him?  His location is on %s",
+						"title": "%s needs your help right now"
+					},
+					"data": {
+						"uLatitude": %f,
+						"uLongitude": %f,
+						"username": %s
 					}
 				}
 			}
-			`, token, address))
+			`, token, username, address, username, latitude, longitude, username))
 		r, err := http.NewRequest("POST", postUrl, bytes.NewBuffer(notifBody))
 		r.Header.Add("Content-Type", "application/json")
 		r.Header.Add("Authorization", "Bearer "+os.Getenv("FCM_KEY"))

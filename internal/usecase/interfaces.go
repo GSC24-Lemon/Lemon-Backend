@@ -45,6 +45,7 @@ type (
 
 	UserRedisRepo interface {
 		SaveUsernameAndDeviceId(deviceId string, username string)
+		GetUsernameFromDeviceId(deviceId string) string
 	}
 
 	UserUseCaseI interface {

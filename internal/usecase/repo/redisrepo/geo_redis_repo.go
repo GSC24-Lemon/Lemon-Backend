@@ -20,6 +20,12 @@ func NewGeoRedisRepo(rds *redispkg.Redis) *GeoRedisRepo {
 // caregiverKey= tokenFcm
 func (r *GeoRedisRepo) GeoAddVisuallyImpair(deviceId string, long float64,
 	lat float64) {
+
+	_, err := r.rds.Client.GeoPos(context.Background(), deviceId, "currentLocation").Result()
+	if err == nil {
+		// geoset with key deviceId, name currentLocation already exists
+		return
+	}
 	r.rds.Client.GeoAdd(context.Background(), deviceId, &redis.GeoLocation{
 		Name:      "currentLocation",
 		Longitude: long,
@@ -40,6 +46,11 @@ func (r *GeoRedisRepo) Geohash(key string) (string, error) {
 
 func (r *GeoRedisRepo) GeoAddCaregiver(tokenFcm string, long float64,
 	lat float64) {
+	_, err := r.rds.Client.GeoPos(context.Background(), tokenFcm, "currentLocation").Result()
+	if err == nil {
+		// geoset with key deviceId, name currentLocation already exists
+		return
+	}
 	r.rds.Client.GeoAdd(context.Background(), tokenFcm, &redis.GeoLocation{
 		Name:      "currentLocation",
 		Longitude: long,
@@ -56,7 +67,8 @@ func (r *GeoRedisRepo) GetCaregiverTokens(areaGeohash []string) ([]string, error
 	for _, currGeohash := range areaGeohash {
 		currTokenFcms, err := r.rds.Client.SMembers(context.Background(), currGeohash).Result()
 		if err != nil {
-			return nil, fmt.Errorf("BadRequest - GeoRedisRepo - Geohash : %w", err)
+			// there are no set members
+			continue
 		}
 
 		for _, currTokenFcm := range currTokenFcms {

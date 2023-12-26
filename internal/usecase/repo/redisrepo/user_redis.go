@@ -18,3 +18,9 @@ func (r *UserRedisRepo) SaveUsernameAndDeviceId(deviceId string, username string
 	return
 
 }
+
+func (r *UserRedisRepo) GetUsernameFromDeviceId(deviceId string) string {
+	res, _ := r.rds.Client.SMembers(context.Background(), deviceId).Result()
+	username := res[0]
+	return username
+}
