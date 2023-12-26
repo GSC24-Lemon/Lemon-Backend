@@ -42,4 +42,12 @@ type (
 	Websocket interface {
 		WebsocketHandler(http.ResponseWriter, *http.Request, context.Context) error
 	}
+
+	UserRedisRepo interface {
+		SaveUsernameAndDeviceId(deviceId string, username string)
+	}
+
+	UserUseCaseI interface {
+		SaveUsernameAndDeviceId(ctx context.Context, e entity.SaveUsername)
+	}
 )
