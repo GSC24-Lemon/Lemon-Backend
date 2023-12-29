@@ -4,11 +4,14 @@ import (
 	"context"
 	"lemon_be/internal/entity"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
 type (
 	Caregiver interface {
-		NotifyNearestCaregiver(ctx context.Context, e entity.UserLocation)
+		NotifyNearestCaregiver(context.Context, entity.UserLocation)
+		TestGeoAdd(context.Context, entity.UserLocation)
 	}
 
 	UserRepo interface {
@@ -32,10 +35,10 @@ type (
 	}
 
 	GeoRedisRepo interface {
-		GeoAddVisuallyImpair(deviceId string, long float64, lat float64)
-		Geohash(key string) (string, error)
-		GeoAddCaregiver(tokenFcm string, long float64, lat float64)
-		GetCaregiverTokens(areaGeohash []string) ([]string, error)
+		GeoAddVisuallyImpair(context.Context, string, float64, float64)
+		Geohash(context.Context, string) (string, error)
+		GeoAddCaregiver(context.Context, string, float64, float64)
+		GetCaregiverTokens(context.Context, []string) ([]string, error)
 	}
 
 	// Websocket usecase
@@ -44,11 +47,20 @@ type (
 	}
 
 	UserRedisRepo interface {
-		SaveUsernameAndDeviceId(deviceId string, username string)
-		GetUsernameFromDeviceId(deviceId string) string
+		SaveUsernameAndDeviceId(context.Context, string, string, string)
+		GetUsernameFromDeviceId(context.Context, string) ([]string, error)
 	}
 
 	UserUseCaseI interface {
-		SaveUsernameAndDeviceId(ctx context.Context, e entity.SaveUsername)
+		SaveUsernameAndDeviceId(context.Context, entity.SaveUsername)
+	}
+
+	ChatHubI interface {
+		Register(context.Context, *websocket.Conn, string) *User
+		Run()
+	}
+
+	HelpRepo interface {
+		InsertHelp(context.Context, entity.UserLocation, string) error
 	}
 )

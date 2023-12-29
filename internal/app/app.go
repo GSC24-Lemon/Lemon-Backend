@@ -30,20 +30,22 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		l.Fatal(fmt.Errorf("app - Run - firestoreDb - firestore.NewFirestore: %w", err))
 	}
-	redis, err := redispkg.NewRedis(":6379", "gakpakepassword")
+	redis, err := redispkg.NewRedis(cfg.Redis.Address, cfg.Redis.Password)
 
 	//repo
 	userRepo := firestorerepo.NewUserRepo(firestoreDb)
 	sessionRepo := firestorerepo.NewSessionRepo(firestoreDb)
 	geoRedisRepo := redisrepo.NewGeoRedisRepo(redis)
 	userRedisRepo := redisrepo.NewUserRedisRepo(redis)
+	helpRepo := firestorerepo.NewHelpRepo(firestoreDb)
 	// jwt
 	jwtTokenMaker, err := jwt.NewJWTMaker("VBKNhRGFYZWGtbQ8hQ6ABQn1oNbYkHTu/fj/cUUO9p8=")
 
 	// usecase
 	authUseCase := usecase.NewAuthUseCase(userRepo, jwtTokenMaker, sessionRepo)
-	caregiverUseCase := usecase.NewCaregiverUseCase(geoRedisRepo, userRedisRepo)
+	caregiverUseCase := usecase.NewCaregiverUseCase(geoRedisRepo, userRedisRepo, helpRepo)
 	hub := usecase.NewHub(redis, geoRedisRepo)
+	go hub.Run()
 	websocketUSecase := usecase.NewWebsocketUseCase(hub, userRepo, geoRedisRepo)
 	userUsecase := usecase.NewUserUseCase(userRedisRepo)
 

@@ -3,24 +3,25 @@ package usecase
 import (
 	"context"
 	"errors"
-	websocket "github.com/gorilla/websocket"
 	"net/http"
+
+	websocket "github.com/gorilla/websocket"
 )
 
 var (
-	WebsocketConnectionError   = errors.New("websocketc connection error")
-	WebsocketUnauthorizedError = errors.New("websocketc unauthorized error")
+	WebsocketConnectionError   = errors.New("websocket connection error")
+	WebsocketUnauthorizedError = errors.New("websocket unauthorized error")
 )
 
 // WebsocketUseCase bussines logic websocketc
 type WebsocketUseCase struct {
 	userPg       UserRepo
 	geoRedisRepo GeoRedisRepo
-	hub          *Hub
+	hub          ChatHubI
 }
 
 // NewWebsocket Create new websocketUseCase
-func NewWebsocketUseCase(hub *Hub, userPg UserRepo, geoRedisRepo GeoRedisRepo) *WebsocketUseCase {
+func NewWebsocketUseCase(hub ChatHubI, userPg UserRepo, geoRedisRepo GeoRedisRepo) *WebsocketUseCase {
 	return &WebsocketUseCase{userPg, geoRedisRepo, hub}
 }
 
@@ -36,11 +37,13 @@ func (uc *WebsocketUseCase) WebsocketHandler(w http.ResponseWriter, r *http.Requ
 		// Tell the user its not authorized
 		return WebsocketUnauthorizedError
 	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return WebsocketConnectionError
 	}
 
 	_ = uc.hub.Register(ctx, conn, deviceId)
+
 	return nil
 }

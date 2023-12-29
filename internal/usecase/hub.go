@@ -3,13 +3,15 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"github.com/gorilla/websocket"
+	"fmt"
 	"lemon_be/internal/entity"
 	"lemon_be/pkg/redispkg"
 	"log"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type User struct {
@@ -19,6 +21,8 @@ type User struct {
 	Id       uint
 	DeviceId string
 	Hub      *Hub
+
+	inbox chan *entity.MsgGeolocationWs
 }
 
 type Hub struct {
@@ -33,10 +37,13 @@ type Hub struct {
 	unregister chan *User
 }
 
-func NewHub(rds *redispkg.Redis, geoRedis GeoRedisRepo) *Hub {
+func NewHub(rds *redispkg.Redis, geoRedis GeoRedisRepo,
+) *Hub {
 	return &Hub{
-		Rds:      rds,
-		geoRedis: geoRedis,
+		Rds:        rds,
+		geoRedis:   geoRedis,
+		unregister: make(chan *User),
+		register:   make(chan *User),
 	}
 }
 
@@ -44,12 +51,13 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case user := <-h.register:
+			h.mu.Lock()
 			user.Id = h.seq
-			user.DeviceId = user.DeviceId
+			//user.DeviceId = user.DeviceId
 
 			h.us = append(h.us, user)
 			h.seq++
-
+			h.mu.Unlock()
 		case user := <-h.unregister:
 			h.mu.Lock()
 			// binary search utk cari index user di array us
@@ -72,7 +80,7 @@ var (
 	pongWait = 30 * time.Second
 	// pingInterval : setiap 5 detik server mengirim ping message ke client.
 	// pingInterval haruslah lebih kecil dari pongWait
-	pingInterval = (pongWait * 5) / 10
+	pingInterval = (pongWait * 2) / 10
 )
 
 // Receive membaca next message websocket dari client
@@ -99,6 +107,8 @@ func (u *User) Recieve() error {
 		_, msg, err := u.Conn.ReadMessage()
 
 		if err != nil {
+			fmt.Println("errr break loopp:", err)
+			fmt.Println("break loop")
 			break
 		}
 
@@ -112,13 +122,14 @@ func (u *User) Recieve() error {
 		case entity.MessageTypeUserLocation:
 			clientMsg := msgWs.MsgGeolocationUser
 			u.Hub.geoRedis.GeoAddVisuallyImpair(
+				context.Background(),
 				clientMsg.DeviceId,
 				clientMsg.Long,
 				clientMsg.Lat,
 			)
 		case entity.MessageTypeCaregiverLocation:
 			clientMsg := msgWs.MsgGeolocationCaregiver
-			u.Hub.geoRedis.GeoAddCaregiver(clientMsg.TokenFcm,
+			u.Hub.geoRedis.GeoAddCaregiver(context.Background(), clientMsg.TokenFcm,
 				clientMsg.Long, clientMsg.Lat)
 		}
 
@@ -132,11 +143,12 @@ func (h *Hub) Register(ctx context.Context, conn *websocket.Conn, deviceId strin
 		Hub:      h,
 		Conn:     conn,
 		DeviceId: deviceId,
+		inbox:    make(chan *entity.MsgGeolocationWs),
 	}
-
 	user.Hub.register <- user
 
 	go user.Recieve()
+	go user.writePump()
 
 	return user
 }
@@ -147,4 +159,31 @@ func (h *Hub) Register(ctx context.Context, conn *websocket.Conn, deviceId strin
 func (u *User) pongHandler(pongMsg string) error {
 
 	return u.Conn.SetReadDeadline(time.Now().Add(pongWait))
+}
+
+// writePump mengirim message websocket ke user/client/frontend
+// 1 goroutine yg menjalankan writePump dijalankan di setiap koneksi client websocket.
+func (u *User) writePump() {
+
+	// Create a ticker that triggers a ping at given interval
+	ticker := time.NewTicker(pingInterval)
+
+	defer func() {
+		ticker.Stop()
+		u.Conn.Close()
+	}()
+	for {
+
+		select {
+
+		case <-ticker.C:
+
+			err := u.Conn.WriteMessage(websocket.PingMessage, []byte{})
+			if err != nil {
+				log.Println("wsutil.WriteServerMessage", err)
+				return
+			}
+
+		}
+	}
 }

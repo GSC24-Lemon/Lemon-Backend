@@ -1,11 +1,12 @@
 package v1
 
 import (
-	"github.com/gin-gonic/gin"
 	"lemon_be/internal/entity"
 	"lemon_be/internal/usecase"
 	"lemon_be/pkg/logger"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type userRoutes struct {
@@ -23,8 +24,13 @@ func newUserRoutes(handler *gin.RouterGroup, c usecase.UserUseCaseI, l logger.In
 }
 
 type userRegisterRequest struct {
-	Username string `json:"username"`
-	DeviceId string `json:"deviceId"`
+	Username  string `json:"username"`
+	DeviceId  string `json:"deviceId"`
+	Telephone string `json:"telephone"`
+}
+
+type okResponse struct {
+	Messsage string `json:"message" example:"message"`
 }
 
 // @Summary     save (deviceId, username) to redis
@@ -47,8 +53,9 @@ func (r *userRoutes) registerUsername(c *gin.Context) {
 		return
 	}
 	r.c.SaveUsernameAndDeviceId(c.Request.Context(), entity.SaveUsername{
-		Username: request.Username,
-		DeviceId: request.DeviceId,
+		Username:  request.Username,
+		DeviceId:  request.DeviceId,
+		Telephone: request.Telephone,
 	})
-	c.JSON(http.StatusOK, "ok")
+	c.JSON(http.StatusOK, okResponse{Messsage: "ok"})
 }

@@ -7,19 +7,19 @@ type MsgGeolocationWs struct {
 }
 
 type GeoLocationUser struct {
-	DeviceId string
-	Long     float64
-	Lat      float64
+	DeviceId string  `json:"deviceId"`
+	Long     float64 `json:"longitude"`
+	Lat      float64 `json:"latitude"`
 }
 
 type GeoLocationCaregiver struct {
-	TokenFcm string
-	Long     float64
-	Lat      float64
+	TokenFcm string  `json:"tokenFcm"`
+	Long     float64 `json:"longitude"`
+	Lat      float64 `json:"latitude"`
 }
 
 type (
-	MessageType string
+	MessageType string 
 )
 
 const (

@@ -20,13 +20,16 @@ func newCaregiverRoutes(handler *gin.RouterGroup, c usecase.Caregiver, l logger.
 	h := handler.Group("/caregiver")
 	{
 		h.POST("/help", r.notifyNearestCaregiver)
+		h.POST("/test", r.testGeoAdd)
 	}
 }
 
 type notifyNearestCaregiverRequest struct {
-	DeviceId  string  `json:"deviceId"`
-	Longitude float64 `json:"longitude"`
-	Latitude  float64 `json:"latitude"`
+	DeviceId    string  `json:"deviceId"`
+	Longitude   float64 `json:"longitude"`
+	Latitude    float64 `json:"latitude"`
+	Username    string  `json:"username"`
+	Destination string  `json:"destination"`
 }
 
 // @Summary     send notification to the nearest caregiver
@@ -50,10 +53,34 @@ func (r *caregiverRoutes) notifyNearestCaregiver(c *gin.Context) {
 	}
 
 	r.c.NotifyNearestCaregiver(c.Request.Context(), entity.UserLocation{
-		DeviceId: request.DeviceId,
-		Lat:      request.Latitude,
-		Long:     request.Longitude,
+		DeviceId:    request.DeviceId,
+		Lat:         request.Latitude,
+		Long:        request.Longitude,
+		Username:    request.Username,
+		Destination: request.Destination,
 	})
 
-	c.JSON(http.StatusOK, "ok")
+	c.JSON(http.StatusOK, okResponse{Messsage: "ok"})
+}
+
+
+
+// tes geoadd
+func (r *caregiverRoutes) testGeoAdd(c *gin.Context) {
+	var request notifyNearestCaregiverRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		r.l.Error(err, "http - v1 - findNearestCaregiverRequest")
+		ErrorResponse(c, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	r.c.TestGeoAdd(c.Request.Context(), entity.UserLocation{
+		DeviceId:    request.DeviceId,
+		Lat:         request.Latitude,
+		Long:        request.Longitude,
+		Username:    request.Username,
+		Destination: request.Destination,
+	})
+
+	c.JSON(http.StatusOK, okResponse{Messsage: "ok"})
 }

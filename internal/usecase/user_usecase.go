@@ -1,20 +1,21 @@
 package usecase
 
 import (
-	"golang.org/x/net/context"
+	"fmt"
 	"lemon_be/internal/entity"
-	"lemon_be/internal/usecase/repo/redisrepo"
+
+	"golang.org/x/net/context"
 )
 
 type UserUseCase struct {
-	userRedisRepo *redisrepo.UserRedisRepo
+	userRedisRepo UserRedisRepo
 }
 
-func NewUserUseCase(userRedisRepo *redisrepo.UserRedisRepo) *UserUseCase {
+func NewUserUseCase(userRedisRepo UserRedisRepo) *UserUseCase {
 	return &UserUseCase{userRedisRepo}
 }
 
 func (uc *UserUseCase) SaveUsernameAndDeviceId(ctx context.Context, e entity.SaveUsername) {
-	uc.userRedisRepo.SaveUsernameAndDeviceId(e.DeviceId, e.Username)
-
+	uc.userRedisRepo.SaveUsernameAndDeviceId(ctx, e.DeviceId, e.Username, e.Telephone)
+	fmt.Printf("registering user: %s %s %s", e.DeviceId, e.Username, e.Telephone)
 }

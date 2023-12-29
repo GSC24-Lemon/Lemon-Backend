@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-
 	"github.com/ilyakaznacheev/cleanenv"
+	"os"
 )
 
 type (
@@ -13,6 +13,7 @@ type (
 		HTTP      `yaml:"http"`
 		Log       `yaml:"logger"`
 		Firestore `yaml:"firestore"`
+		Redis     `yaml:"redis"`
 	}
 
 	// App -.
@@ -35,13 +36,31 @@ type (
 		ServiceAccLocation string `env-required:"true" yaml:"service_acc_key" `
 		ProjectId          string `env-required:"true" yaml:"projectId"`
 	}
+
+	Redis struct {
+		Address  string `env-required:"true" yaml:"server_address" `
+		Password string `env-required:"true" yaml:"password" env:"REDIS_PASSWORD"`
+	}
 )
 
 // NewConfig returns app config.
 func NewConfig() (*Config, error) {
 	cfg := &Config{}
-
-	err := cleanenv.ReadConfig("./config/config.yml", cfg)
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("config error: %w", err)
+	}
+	//parentTop := filepath.Dir(wd)
+	//parentTopTop := filepath.Dir(parentTop)
+	// err = cleanenv.ReadConfig("./config/config.yml", cfg)
+	err = cleanenv.ReadConfig(wd+"/config/config.yml", cfg)
+	if err != nil {
+		return nil, err
+	}
+	err = cleanenv.ReadConfig("./.env", cfg)
+	if err != nil {
+		return nil, err
+	}
 	if err != nil {
 		return nil, fmt.Errorf("config error: %w", err)
 	}
