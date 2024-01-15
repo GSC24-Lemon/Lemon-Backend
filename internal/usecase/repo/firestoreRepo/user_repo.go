@@ -3,7 +3,7 @@ package firestorerepo
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"lemon_be/internal/controller/http/errorWrapper"
 	"lemon_be/internal/entity"
 	"lemon_be/pkg/firestore"
 
@@ -34,7 +34,8 @@ func (r *UserRepo) CreateUser(ctx context.Context, e entity.CreateCaregiverReque
 		userId = doc.Ref.ID
 	}
 	if objMap != nil && userId != "" {
-		return entity.Caregiver{}, fmt.Errorf("BadRequest - UserRepo - CreateUser - r.firestore.Client.Collection ")
+		// return entity.Caregiver{}, fmt.Errorf("BadRequest - UserRepo - CreateUser - r.firestore.Client.Collection ")
+		return entity.Caregiver{}, errorWrapper.NewHTTPError(nil, 400, "user with same email exists")
 	}
 
 	_, _, err := r.firestore.Client.Collection("User").Add(ctx, map[string]interface{}{
@@ -46,7 +47,8 @@ func (r *UserRepo) CreateUser(ctx context.Context, e entity.CreateCaregiverReque
 	})
 
 	if err != nil {
-		return entity.Caregiver{}, fmt.Errorf("UserRepo - CreateUser - r.firestore.Client.Collection - %w", err)
+		// return entity.Caregiver{}, fmt.Errorf("UserRepo - CreateUser - r.firestore.Client.Collection - %w", err)
+		return entity.Caregiver{}, errorWrapper.NewHTTPError(err, 400, "error when creating new user")
 	}
 
 	caregiver := entity.Caregiver{
@@ -72,7 +74,8 @@ func (r *UserRepo) GetUser(ctx context.Context, e string) (entity.Caregiver, err
 			break
 		}
 		if err != nil {
-			return entity.Caregiver{}, fmt.Errorf("UserRepo - GetUser - Collection().Where %w", err)
+			// return entity.Caregiver{}, fmt.Errorf("UserRepo - GetUser - Collection().Where %w", err)
+			return entity.Caregiver{}, errorWrapper.NewHTTPError(err, 404, "user not found")
 		}
 		objMap = doc.Data()
 		userId = doc.Ref.ID

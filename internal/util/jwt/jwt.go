@@ -3,8 +3,10 @@ package jwt
 import (
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"lemon_be/internal/controller/http/errorWrapper"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 const minSecretKeySize = 32
@@ -38,7 +40,7 @@ func (maker *JWTMaker) VerifyToken(token string) (*Payload, error) {
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
-			return nil, ErrInvalidToken
+			return nil, errorWrapper.NewHTTPError(ErrInvalidToken, 401, "token is invalid")
 		}
 		return []byte(maker.secretKey), nil
 	}
@@ -47,14 +49,14 @@ func (maker *JWTMaker) VerifyToken(token string) (*Payload, error) {
 	if err != nil {
 		verr, ok := err.(*jwt.ValidationError)
 		if ok && errors.Is(verr.Inner, ErrExpiredToken) {
-			return nil, ErrExpiredToken
+			return nil, errorWrapper.NewHTTPError(ErrExpiredToken, 401, "token has expired")
 		}
-		return nil, ErrInvalidToken
+		return nil, errorWrapper.NewHTTPError(ErrInvalidToken, 401, "token is invalid")
 	}
 
 	payload, ok := jwtToken.Claims.(*Payload)
 	if !ok {
-		return nil, ErrInvalidToken
+		return nil, errorWrapper.NewHTTPError(ErrInvalidToken, 401, "token is invalid")
 	}
 
 	return payload, nil

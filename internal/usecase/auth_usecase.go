@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"lemon_be/internal/controller/http/errorWrapper"
 	"lemon_be/internal/entity"
 	"lemon_be/internal/util"
 	"lemon_be/internal/util/jwt"
@@ -27,13 +28,14 @@ func (uc *AuthUseCase) Register(ctx context.Context, c entity.CreateCaregiverReq
 	hashedPassword, err := util.HashPassword(c.Password)
 	if err != nil {
 		// internal server error
-		return entity.Caregiver{}, fmt.Errorf("AuthUseCase - Register -  util.HashPassword: %w", err)
+		return entity.Caregiver{}, fmt.Errorf("AuthUseCase - Register -  util.HashPassword:")
 	}
 	c.Password = hashedPassword
 	createdUser, err := uc.userRepo.CreateUser(ctx, c)
 	if err != nil {
 		// internal server error/ bad request
-		return entity.Caregiver{}, fmt.Errorf("AuthUseCase - Register - uc.userRepo.CreateUser: %w", err)
+		// return entity.Caregiver{}, fmt.Errorf("AuthUseCase - Register - uc.userRepo.CreateUser: %w", err)
+		return entity.Caregiver{}, err
 	}
 
 	return createdUser, nil
@@ -44,13 +46,15 @@ func (uc *AuthUseCase) Login(ctx context.Context, l entity.LoginUserRequest) (en
 	user, err := uc.userRepo.GetUser(ctx, l.Email)
 	if err != nil {
 		// Bad request User with email not found in DB
-		return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - uc.userRepo.GetUser: %w", err)
+		// return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - uc.userRepo.GetUser: %w", err)
+		return entity.LoginUserResponse{}, err
 	}
 
 	err = util.CheckPassword(l.Password, user.HashedPassword)
 	if err != nil {
 		// unauthorized
-		return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - util.CheckPassword: %w", err)
+		// return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - util.CheckPassword: %w", err)
+		return entity.LoginUserResponse{}, err
 	}
 
 	accessToken, accessPayload, err := uc.jwtTokenMaker.CreateToken(
@@ -60,7 +64,7 @@ func (uc *AuthUseCase) Login(ctx context.Context, l entity.LoginUserRequest) (en
 
 	if err != nil {
 		// internal server error
-		return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - uc.jwtTokenMaker.CreateToken: %w", err)
+		return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - uc.jwtTokenMaker.CreateToken: ")
 	}
 
 	refreshToken, refreshPayload, err := uc.jwtTokenMaker.CreateToken(
@@ -69,7 +73,7 @@ func (uc *AuthUseCase) Login(ctx context.Context, l entity.LoginUserRequest) (en
 	)
 	if err != nil {
 		// internal server error
-		return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - uc.jwtTokenMaker.CreateToken: %w", err)
+		return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - uc.jwtTokenMaker.CreateToken: ")
 	}
 
 	createSessionReq := entity.CreateSessionRequest{
@@ -85,7 +89,8 @@ func (uc *AuthUseCase) Login(ctx context.Context, l entity.LoginUserRequest) (en
 	)
 
 	if err != nil {
-		return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - uc.sessionRepo.CreateSession: %w", err)
+		// return entity.LoginUserResponse{}, fmt.Errorf("AuthUseCase - Login - uc.sessionRepo.CreateSession: %w", err)
+		return entity.LoginUserResponse{}, err
 	}
 
 	userRes := entity.UserResponse{
@@ -148,26 +153,32 @@ func (uc *AuthUseCase) DeleteRefreshToken(ctx context.Context, d entity.DeleteRe
 	refreshPayload, err := uc.jwtTokenMaker.VerifyToken(d.RefreshToken)
 	if err != nil {
 		// Unauthorized , token yg dikrim tidak sama dg yg ada di database
-		return fmt.Errorf("AuthUseCase - DeleteRefreshToken - uc.jwtTokenMaker.VerifyToken: %w", err)
+		// return fmt.Errorf("AuthUseCase - DeleteRefreshToken - uc.jwtTokenMaker.VerifyToken: %w", err)
+		return err
 	}
 
 	session, err := uc.sessionRepo.GetSession(ctx, refreshPayload.ID.String())
 	if err != nil {
-		return fmt.Errorf("AuthUseCase - DeleteRefreshToken - uc.sessionRepo.GetSession: %w", err)
+		// return fmt.Errorf("AuthUseCase - DeleteRefreshToken - uc.sessionRepo.GetSession: %w", err)
+		return err
 	}
 	if session.Username != refreshPayload.Username {
-		return fmt.Errorf("Invalid session")
+		// return fmt.Errorf("Invalid session")
+		return errorWrapper.NewHTTPError(nil, 401, "Invalid session")
 	}
 	if session.RefreshToken != d.RefreshToken {
-		return fmt.Errorf("Invalid session")
+		// return fmt.Errorf("Invalid session")
+		return errorWrapper.NewHTTPError(nil, 401, "invalid session")
+
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		return fmt.Errorf("Invalid session")
+		// return fmt.Errorf("Invalid session")
+		return errorWrapper.NewHTTPError(nil, 401, "invalid session")
 	}
 	err = uc.sessionRepo.DeleteSession(ctx, refreshPayload.ID.String())
 	if err != nil {
-		return fmt.Errorf("AuthUseCase - DeleteRefreshToken - uc.sessionRepo.DeleteSession: %w", err)
+		return err
 	}
 
 	return nil

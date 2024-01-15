@@ -1,20 +1,19 @@
-
-
-package firestore
+package fcm
 
 import (
 	"context"
+
 	"google.golang.org/api/option"
 
-	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
+	"firebase.google.com/go/messaging"
 )
 
-type Firestore struct {
-	Client *firestore.Client
+type FirebaseMessaging struct {
+	Client *messaging.Client
 }
 
-func NewFirestore(projectId string, serviceAccKey string) (*Firestore, error) {
+func NewFirebaseMessaging(projectId string, serviceAccKey string) (*FirebaseMessaging, error) {
 	ctx := context.Background()
 	// conf := &firebase.Config{ProjectID: projectId}
 	opt := option.WithCredentialsFile(serviceAccKey)
@@ -24,13 +23,13 @@ func NewFirestore(projectId string, serviceAccKey string) (*Firestore, error) {
 		return nil, err
 	}
 
-	client, err := app.Firestore(ctx)
+	client, err := app.Messaging(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	fs := &Firestore{
+	fs := &FirebaseMessaging{
 		Client: client,
 	}
 

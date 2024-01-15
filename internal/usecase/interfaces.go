@@ -10,8 +10,10 @@ import (
 
 type (
 	Caregiver interface {
-		NotifyNearestCaregiver(context.Context, entity.UserLocation)
-		TestGeoAdd(context.Context, entity.UserLocation)
+		NotifyNearestCaregiver(context.Context, entity.UserLocation) error 
+		TestGeoAdd(context.Context, entity.UserLocation) 
+		PushNotificationToCaregivers([]string, float64, float64,
+			string, string, string) error
 	}
 
 	UserRepo interface {
@@ -47,12 +49,12 @@ type (
 	}
 
 	UserRedisRepo interface {
-		SaveUsernameAndDeviceId(context.Context, string, string, string)
-		GetUsernameFromDeviceId(context.Context, string) ([]string, error)
+		SaveUsernameAndDeviceId(context.Context, string, string, string) error 
+		GetUsernameFromDeviceId(context.Context, string) ([]string, error) 
 	}
 
 	UserUseCaseI interface {
-		SaveUsernameAndDeviceId(context.Context, entity.SaveUsername)
+		SaveUsernameAndDeviceId(context.Context, entity.SaveUsername) error
 	}
 
 	ChatHubI interface {
@@ -62,5 +64,9 @@ type (
 
 	HelpRepo interface {
 		InsertHelp(context.Context, entity.UserLocation, string) error
+	}
+
+	FirebaseMessaging interface {
+		SendNotifToSpecificDevice(context.Context, entity.SpecificHelpNotificationRequest) error
 	}
 )

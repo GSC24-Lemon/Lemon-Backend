@@ -80,7 +80,7 @@ var (
 	pongWait = 30 * time.Second
 	// pingInterval : setiap 5 detik server mengirim ping message ke client.
 	// pingInterval haruslah lebih kecil dari pongWait
-	pingInterval = (pongWait * 2) / 10
+	pingInterval = 10 * time.Second
 )
 
 // Receive membaca next message websocket dari client
@@ -111,7 +111,6 @@ func (u *User) Recieve() error {
 			fmt.Println("break loop")
 			break
 		}
-
 		msgWs := &entity.MsgGeolocationWs{}
 		if err = json.Unmarshal(msg, msgWs); err != nil {
 			log.Println("json.Unmarshal: ", err)

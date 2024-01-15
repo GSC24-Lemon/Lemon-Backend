@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"lemon_be/internal/controller/http/errorWrapper"
 	"lemon_be/internal/entity"
 	"lemon_be/internal/usecase"
 	"lemon_be/pkg/logger"
@@ -52,10 +53,44 @@ func (r *userRoutes) registerUsername(c *gin.Context) {
 		ErrorResponse(c, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	r.c.SaveUsernameAndDeviceId(c.Request.Context(), entity.SaveUsername{
+	err := r.c.SaveUsernameAndDeviceId(c.Request.Context(), entity.SaveUsername{
 		Username:  request.Username,
 		DeviceId:  request.DeviceId,
 		Telephone: request.Telephone,
 	})
+
+	if err != nil {
+
+		clientError, ok := err.(errorWrapper.ClientError)
+		if !ok {
+			r.l.Error("http - v1- registerUsername")
+			ErrorResponse(c, http.StatusInternalServerError, "registerUsernameservice problems")
+			return
+		}
+
+		body, err := clientError.ResponseBody()
+		if err != nil {
+			r.l.Error("http - v1- registerUsername")
+			ErrorResponse(c, http.StatusInternalServerError, "registerUsernameservice problems")
+			return
+		}
+
+		status, _ := clientError.ResponseHeaders()
+		if status != 0 {
+			ErrorResponse(c, status, string(body[:]))
+			return
+		}
+		// errorM := errors.Unwrap(err)
+		// errM := errors.Unwrap(err)
+		// errorType := strings.Fields(errM.Error())
+		// if errorType[0] == "BadRequest" {
+		// 	ErrorResponse(c, http.StatusBadRequest, "Bad request:  User With same username or email already exists")
+		// 	return
+		// }
+
+		r.l.Error("http - v1- registerUsername")
+		ErrorResponse(c, http.StatusInternalServerError, "registerUsernameservice problems: "+err.Error())
+		return
+	}
 	c.JSON(http.StatusOK, okResponse{Messsage: "ok"})
 }

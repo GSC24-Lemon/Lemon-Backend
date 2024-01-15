@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"lemon_be/internal/controller/http/errorWrapper"
 	"lemon_be/internal/entity"
 	"lemon_be/internal/usecase"
 	"lemon_be/pkg/logger"
@@ -52,7 +53,7 @@ func (r *caregiverRoutes) notifyNearestCaregiver(c *gin.Context) {
 		return
 	}
 
-	r.c.NotifyNearestCaregiver(c.Request.Context(), entity.UserLocation{
+	err := r.c.NotifyNearestCaregiver(c.Request.Context(), entity.UserLocation{
 		DeviceId:    request.DeviceId,
 		Lat:         request.Latitude,
 		Long:        request.Longitude,
@@ -60,10 +61,42 @@ func (r *caregiverRoutes) notifyNearestCaregiver(c *gin.Context) {
 		Destination: request.Destination,
 	})
 
+	if err != nil {
+
+		clientError, ok := err.(errorWrapper.ClientError)
+		if !ok {
+			r.l.Error("http - v1- notifyNearestCaregiver")
+			ErrorResponse(c, http.StatusInternalServerError, "notifyNearestCaregiver service problems")
+			return
+		}
+
+		body, err := clientError.ResponseBody()
+		if err != nil {
+			r.l.Error("http - v1- notifyNearestCaregiver")
+			ErrorResponse(c, http.StatusInternalServerError, "notifyNearestCaregiver service problems")
+			return
+		}
+
+		status, _ := clientError.ResponseHeaders()
+		if status != 0 {
+			ErrorResponse(c, status, string(body[:]))
+			return
+		}
+		// errorM := errors.Unwrap(err)
+		// errM := errors.Unwrap(err)
+		// errorType := strings.Fields(errM.Error())
+		// if errorType[0] == "BadRequest" {
+		// 	ErrorResponse(c, http.StatusBadRequest, "Bad request:  User With same username or email already exists")
+		// 	return
+		// }
+
+		r.l.Error("http - v1- notifyNearestCaregiver")
+		ErrorResponse(c, http.StatusInternalServerError, "notifyNearestCaregiver service problems: "+err.Error())
+		return
+	}
+
 	c.JSON(http.StatusOK, okResponse{Messsage: "ok"})
 }
-
-
 
 // tes geoadd
 func (r *caregiverRoutes) testGeoAdd(c *gin.Context) {

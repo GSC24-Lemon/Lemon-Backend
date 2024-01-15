@@ -3,7 +3,7 @@ package firestorerepo
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"lemon_be/internal/controller/http/errorWrapper"
 	"lemon_be/internal/entity"
 	"lemon_be/pkg/firestore"
 	"time"
@@ -45,7 +45,9 @@ func (r *SessionRepo) CreateSession(ctx context.Context, c entity.CreateSessionR
 	})
 
 	if err != nil {
-		return entity.Session{}, fmt.Errorf("SessionRepo - r.db.Create: %w", err)
+		// return entity.Session{}, fmt.Errorf("SessionRepo - r.db.Create: %w", err)
+		return entity.Session{}, errorWrapper.NewHTTPError(err, 400, "Error when adding new data to Session firestore collection ")
+
 	}
 
 	session := entity.Session{
@@ -69,7 +71,9 @@ func (r *SessionRepo) GetSession(ctx context.Context, refreshTokkenId string) (e
 			break
 		}
 		if err != nil {
-			return entity.Session{}, fmt.Errorf("SessionRepo - GetSession- r.db.Where(&Session{ID: refreshTokkenId}).First(&sessionDb): %w", err)
+			// return entity.Session{}, fmt.Errorf("SessionRepo - GetSession- r.db.Where(&Session{ID: refreshTokkenId}).First(&sessionDb): %w", err)
+			return entity.Session{}, errorWrapper.NewHTTPError(err, 401, "Session not found in database")
+
 		}
 
 		objectMap = doc.Data()
@@ -102,7 +106,8 @@ func (r *SessionRepo) DeleteSession(ctx context.Context, uuid string) error {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("SessionRepo - GetSession- r.db.Where(&Session{ID: refreshTokkenId}).First(&sessionDb): %w", err)
+			// return fmt.Errorf("SessionRepo - GetSession- r.db.Where(&Session{ID: refreshTokkenId}).First(&sessionDb): %w", err)
+			return errorWrapper.NewHTTPError(err, 404, "Session not found in database")
 		}
 
 		objectMap = doc.Data()
@@ -124,7 +129,8 @@ func (r *SessionRepo) DeleteSession(ctx context.Context, uuid string) error {
 
 	_, err := r.firestore.Client.Collection("Session").Doc(session.ID).Delete(ctx)
 	if err != nil {
-		return fmt.Errorf("Sessionrepo - r.db.Where(&Session{ID: uuid}).Delete(&sessionDb) - %w", err)
+		// return fmt.Errorf("Sessionrepo - r.db.Where(&Session{ID: uuid}).Delete(&sessionDb) - %w", err)
+		return errorWrapper.NewHTTPError(err, 401, "Session not found in database")
 	}
 
 	return nil

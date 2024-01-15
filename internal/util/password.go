@@ -1,7 +1,8 @@
 package util
 
 import (
-	"fmt"
+	"lemon_be/internal/controller/http/errorWrapper"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -9,7 +10,8 @@ import (
 func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("failed to hash password: %w", err)
+		// return "", fmt.Errorf("failed to hash password: %w", err)
+		return "", errorWrapper.NewHTTPError(err, 500, "failed to hash password")
 	}
 
 	return string(hashedPassword), nil

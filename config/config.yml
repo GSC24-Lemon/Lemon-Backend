@@ -11,7 +11,7 @@ logger:
 
 firestore:
   projectId: "491496864435"
-  service_acc_key: "/Users/lintangbirdasaputra/Documents/sekolah/gdsc/GSC_Lemon/lemon_app_baru/lemon_be/lemon-df113-firebase-adminsdk-d0bb7-c8586e988d.json"
+  service_acc_key: "/Users/lintangbirdasaputra/Documents/sekolah/gdsc/GSC_Lemon/lemon_be/lemon-df113-firebase-adminsdk-d0bb7-8aae5b135f.json"
 
 redis:
   server_address: ':6379'

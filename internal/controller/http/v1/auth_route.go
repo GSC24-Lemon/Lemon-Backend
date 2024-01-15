@@ -1,17 +1,14 @@
 package v1
 
 import (
-	"errors"
+	"lemon_be/internal/controller/http/errorWrapper"
 	"lemon_be/internal/entity"
 	"lemon_be/internal/usecase"
-	"lemon_be/internal/util/jwt"
 	"lemon_be/pkg/logger"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type authRoutes struct {
@@ -85,16 +82,35 @@ func (r *authRoutes) registerUser(c *gin.Context) {
 
 	if err != nil {
 
-		errorM := errors.Unwrap(err)
-		errM := errors.Unwrap(err)
-		errorType := strings.Fields(errM.Error())
-		if errorType[0] == "BadRequest" {
-			ErrorResponse(c, http.StatusBadRequest, "Bad request:  User With same username or email already exists")
+		clientError, ok := err.(errorWrapper.ClientError)
+		if !ok {
+			r.l.Error("http - v1- registerUser")
+			ErrorResponse(c, http.StatusInternalServerError, "register service problems")
 			return
 		}
 
+		body, err := clientError.ResponseBody()
+		if err != nil {
+			r.l.Error("http - v1- registerUser")
+			ErrorResponse(c, http.StatusInternalServerError, "register service problems")
+			return
+		}
+
+		status, _ := clientError.ResponseHeaders()
+		if status != 0 {
+			ErrorResponse(c, status, string(body[:]))
+			return
+		}
+		// errorM := errors.Unwrap(err)
+		// errM := errors.Unwrap(err)
+		// errorType := strings.Fields(errM.Error())
+		// if errorType[0] == "BadRequest" {
+		// 	ErrorResponse(c, http.StatusBadRequest, "Bad request:  User With same username or email already exists")
+		// 	return
+		// }
+
 		r.l.Error("http - v1- registerUser")
-		ErrorResponse(c, http.StatusInternalServerError, "register service problems: "+errorM.Error())
+		ErrorResponse(c, http.StatusInternalServerError, "register service problems: "+err.Error())
 		return
 	}
 
@@ -109,12 +125,12 @@ type loginUserRequest struct {
 }
 
 type loginUserResponse struct {
-	SessionId             string       `json:"session_id"`
-	AccessToken           string       `json:"access_token"`
-	AccessTokenExpiresAt  time.Time    `json:"access_token_expires_at"`
-	RefreshToken          string       `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time    `json:"refresh_token_expires_at"`
-	User                  userResponse `json:"user"`
+	SessionId             string    `json:"session_id"`
+	AccessToken           string    `json:"access_token"`
+	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
+	RefreshToken          string    `json:"refresh_token"`
+	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
+	Email                 string    `json:"email"`
 }
 
 // @Summary     Login User
@@ -148,12 +164,32 @@ func (r *authRoutes) loginUser(c *gin.Context) {
 	)
 	if err != nil {
 
-		unwrapedErr := errors.Unwrap(err)
-		// errM := errors.Unwrap(unwrapedErr)
-		if unwrapedErr == bcrypt.ErrMismatchedHashAndPassword {
-			ErrorResponse(c, http.StatusUnauthorized, "Wrong password")
+		clientError, ok := err.(errorWrapper.ClientError)
+		if !ok {
+			r.l.Error("http - v1- loginUser")
+			ErrorResponse(c, http.StatusInternalServerError, "loginUser service problems")
 			return
 		}
+
+		body, err := clientError.ResponseBody()
+		if err != nil {
+			r.l.Error("http - v1- loginUser")
+			ErrorResponse(c, http.StatusInternalServerError, "loginUser service problems")
+			return
+		}
+
+		status, _ := clientError.ResponseHeaders()
+		if status != 0 {
+			ErrorResponse(c, status, string(body[:]))
+			return
+		}
+		// errorM := errors.Unwrap(err)
+		// errM := errors.Unwrap(err)
+		// errorType := strings.Fields(errM.Error())
+		// if errorType[0] == "BadRequest" {
+		// 	ErrorResponse(c, http.StatusBadRequest, "Bad request:  User With same username or email already exists")
+		// 	return
+		// }
 
 		r.l.Error("http - v1- loginUser")
 		ErrorResponse(c, http.StatusInternalServerError, "loginUser service problems: "+err.Error())
@@ -166,11 +202,7 @@ func (r *authRoutes) loginUser(c *gin.Context) {
 		AccessTokenExpiresAt:  loginResponse.AccessTokenExpiresAt,
 		RefreshToken:          loginResponse.RefreshToken,
 		RefreshTokenExpiresAt: loginResponse.RefreshTokenExpiresAt,
-		User: userResponse{
-			Id:    loginResponse.User.Id,
-			Name:  loginResponse.User.Username,
-			Email: loginResponse.User.Email,
-		},
+		Email:                 loginResponse.User.Email,
 	}
 	c.JSON(http.StatusCreated, resp)
 }
@@ -276,18 +308,33 @@ func (r *authRoutes) deleteRefreshToken(c *gin.Context) {
 		},
 	)
 	if err != nil {
-		unwrapedErr := errors.Unwrap(err)
-		//errRepo := errors.Unwrap(unwrapedErr)
-		// jika refresh token invalid / expired
-		if unwrapedErr == jwt.ErrInvalidToken || unwrapedErr == jwt.ErrExpiredToken {
-			ErrorResponse(c, http.StatusUnauthorized, "Token invalid or token already expired")
+
+		clientError, ok := err.(errorWrapper.ClientError)
+		if !ok {
+			r.l.Error("http - v1- deleteRefreshToken")
+			ErrorResponse(c, http.StatusInternalServerError, "deleteRefreshToken service problems")
 			return
 		}
 
-		if err.Error() == "Invalid session" {
-			ErrorResponse(c, http.StatusUnauthorized, "Refresh Token mismatch with refresh token in database")
+		body, err := clientError.ResponseBody()
+		if err != nil {
+			r.l.Error("http - v1- deleteRefreshToken")
+			ErrorResponse(c, http.StatusInternalServerError, "deleteRefreshToken service problems")
 			return
 		}
+
+		status, _ := clientError.ResponseHeaders()
+		if status != 0 {
+			ErrorResponse(c, status, string(body[:]))
+			return
+		}
+		// errorM := errors.Unwrap(err)
+		// errM := errors.Unwrap(err)
+		// errorType := strings.Fields(errM.Error())
+		// if errorType[0] == "BadRequest" {
+		// 	ErrorResponse(c, http.StatusBadRequest, "Bad request:  User With same username or email already exists")
+		// 	return
+		// }
 
 		r.l.Error("http - v1- deleteRefreshToken")
 		ErrorResponse(c, http.StatusInternalServerError, "deleteRefreshToken service problems: "+err.Error())

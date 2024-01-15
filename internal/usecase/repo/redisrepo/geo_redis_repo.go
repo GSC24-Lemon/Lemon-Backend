@@ -3,6 +3,7 @@ package redisrepo
 import (
 	"context"
 	"fmt"
+	"lemon_be/internal/controller/http/errorWrapper"
 	"lemon_be/pkg/redispkg"
 	"math"
 
@@ -71,7 +72,8 @@ func (r *GeoRedisRepo) GeoAddVisuallyImpair(ctx context.Context, deviceId string
 func (r *GeoRedisRepo) Geohash(ctx context.Context, key string) (string, error) {
 	geohash, err := r.rds.Client.GeoHash(ctx, geoKey, key).Result()
 	if err != nil {
-		return "", fmt.Errorf("BadRequest - GeoRedisRepo - Geohash : %w", err)
+		// return "", fmt.Errorf("BadRequest - GeoRedisRepo - Geohash : %w", err)
+		return "", errorWrapper.NewHTTPError(err, 400, "Cannot geohash key: "+key)
 	}
 
 	return geohash[0], nil
@@ -118,6 +120,10 @@ func (r *GeoRedisRepo) GetCaregiverTokens(ctx context.Context, areaGeohash []str
 			caregiverTokens = append(caregiverTokens, currTokenFcm)
 		}
 
+	}
+	if len(caregiverTokens) == 0 {
+		// return nil, fmt.Errorf("no caregiver found in this area!! %w", errors.New("no caregiver found in this area"));
+		return nil, errorWrapper.NewHTTPError(nil, 404, "no caregiver found in this area!!")
 	}
 	return caregiverTokens, nil
 

@@ -2,8 +2,9 @@ package config
 
 import (
 	"fmt"
-	"github.com/ilyakaznacheev/cleanenv"
 	"os"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type (
@@ -50,14 +51,21 @@ func NewConfig() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("config error: %w", err)
 	}
-	//parentTop := filepath.Dir(wd)
-	//parentTopTop := filepath.Dir(parentTop)
+	// parentTop := filepath.Dir(wd)
+	// parentTopTop := filepath.Dir(parentTop)
 	// err = cleanenv.ReadConfig("./config/config.yml", cfg)
+	// err = cleanenv.ReadConfig(parentTopTop+"/config/config.yml", cfg)
 	err = cleanenv.ReadConfig(wd+"/config/config.yml", cfg)
+
 	if err != nil {
 		return nil, err
 	}
-	err = cleanenv.ReadConfig("./.env", cfg)
+
+	// err = cleanenv.ReadConfig(parentTopTop+"/.env", cfg)
+
+	err = cleanenv.ReadConfig(wd+"/.env", cfg)
+
+	// err = cleanenv.ReadConfig("./.env", cfg)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,3 @@
+
+1. buat export app credentials buat firebase cloud messaging
+export GOOGLE_APPLICATION_CREDENTIALS="/Users/lintangbirdasaputra/Documents/sekolah/gdsc/GSC_Lemon/lemon_be/lemon-df113-firebase-adminsdk-d0bb7-8aae5b135f.json"

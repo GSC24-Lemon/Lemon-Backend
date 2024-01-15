@@ -5,7 +5,9 @@ import (
 	"fmt"
 	firestorerepo "lemon_be/internal/usecase/repo/firestoreRepo"
 	"lemon_be/internal/usecase/repo/redisrepo"
+	firebasemessagingapi "lemon_be/internal/usecase/webapi/firebaseMessagingAPI"
 	"lemon_be/internal/util/jwt"
+	"lemon_be/pkg/fcm"
 	"lemon_be/pkg/redispkg"
 	"os"
 	"os/signal"
@@ -24,12 +26,16 @@ import (
 // Run creates objects via constructors.
 func Run(cfg *config.Config) {
 	l := logger.New(cfg.Log.Level)
-
+	fmt.Println("proejctId: ")
 	// db
 	firestoreDb, err := firestore.NewFirestore(cfg.Firestore.ServiceAccLocation, cfg.Firestore.ServiceAccLocation)
 	if err != nil {
 		l.Fatal(fmt.Errorf("app - Run - firestoreDb - firestore.NewFirestore: %w", err))
 	}
+	// firebase cloud messaging
+	firebaseMessaging, err := fcm.NewFirebaseMessaging(cfg.Firestore.ServiceAccLocation, cfg.Firestore.ServiceAccLocation)
+
+	// redis
 	redis, err := redispkg.NewRedis(cfg.Redis.Address, cfg.Redis.Password)
 
 	//repo
@@ -38,12 +44,15 @@ func Run(cfg *config.Config) {
 	geoRedisRepo := redisrepo.NewGeoRedisRepo(redis)
 	userRedisRepo := redisrepo.NewUserRedisRepo(redis)
 	helpRepo := firestorerepo.NewHelpRepo(firestoreDb)
+
+	//api
+	fcmAPI := firebasemessagingapi.NewFirebaseMessagingAPI(firebaseMessaging)
 	// jwt
 	jwtTokenMaker, err := jwt.NewJWTMaker("VBKNhRGFYZWGtbQ8hQ6ABQn1oNbYkHTu/fj/cUUO9p8=")
 
 	// usecase
 	authUseCase := usecase.NewAuthUseCase(userRepo, jwtTokenMaker, sessionRepo)
-	caregiverUseCase := usecase.NewCaregiverUseCase(geoRedisRepo, userRedisRepo, helpRepo)
+	caregiverUseCase := usecase.NewCaregiverUseCase(geoRedisRepo, userRedisRepo, helpRepo, fcmAPI)
 	hub := usecase.NewHub(redis, geoRedisRepo)
 	go hub.Run()
 	websocketUSecase := usecase.NewWebsocketUseCase(hub, userRepo, geoRedisRepo)
